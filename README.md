@@ -22,9 +22,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License">
 </p>
 
-<p align="center">
-  <em>Skills used daily at Amazon, Google, Meta, Uber, and Airbnb</em>
-</p>
+
 
 ---
 
