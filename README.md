@@ -5,7 +5,7 @@
 <h1 align="center">📊 Product Analytics & Experimentation Platform</h1>
 
 <p align="center">
-  <strong>End-to-End Data Analytics Portfolio Project for Senior Product Analyst Roles</strong>
+  <strong>End-to-End Data Analytics Portfolio </strong>
 </p>
 
 <p align="center">
@@ -318,23 +318,7 @@ GROUP BY variant;
 
 ---
 
-## 📋 Resume Bullet Points
 
-```
-• Identified 90.4% checkout abandonment through funnel analysis on 156K+ events, 
-  leading to A/B test achieving +51.5% conversion lift and $75K-$120K annual impact
-
-• Built cohort retention analysis revealing 16.7% Week 0 activation gap; 
-  recommended onboarding improvements targeting +50% activation rate
-
-• Analyzed channel performance discovering mobile converts 35% lower than desktop; 
-  prioritized mobile UX as highest-impact initiative  
-
-• Designed star schema data model and 20+ production SQL queries powering 
-  dashboards that reduced reporting time from days to real-time
-```
-
----
 
 ## 📄 Files Included
 
