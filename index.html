@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Analytics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+        const { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Cell, ComposedChart, PieChart, Pie } = Recharts;
+
+        const COLORS = {
+            primary: '#2563eb',
+            secondary: '#7c3aed',
+            success: '#059669',
+            warning: '#d97706',
+            danger: '#dc2626',
+            info: '#0891b2',
+            gray: '#6b7280',
+        };
+
+        const PALETTE = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2'];
+
+        // Data from analysis
+        const keyMetrics = {
+            totalUsers: 10000,
+            totalRevenue: 454365,
+            avgOrderValue: 3416,
+            arpu: 45.44,
+            avgDAU: 384,
+            avgWAU: 2015,
+            purchaseConversion: 1.28,
+            week1Retention: 30.4,
+        };
+
+        const funnelData = [
+            { stage: 'Page View', users: 8572, rate: 100 },
+            { stage: 'Feature Click', users: 5989, rate: 69.9 },
+            { stage: 'Add to Cart', users: 3708, rate: 43.3 },
+            { stage: 'Checkout', users: 1330, rate: 15.5 },
+            { stage: 'Purchase', users: 128, rate: 1.5 },
+        ];
+
+        const dropoffData = [
+            { transition: 'View→Engage', dropoff: 30.1 },
+            { transition: 'Engage→Cart', dropoff: 38.1 },
+            { transition: 'Cart→Checkout', dropoff: 64.1 },
+            { transition: 'Checkout→Buy', dropoff: 90.4 },
+        ];
+
+        const retentionData = [
+            { week: 0, rate: 16.7 },
+            { week: 1, rate: 30.4 },
+            { week: 2, rate: 29.2 },
+            { week: 3, rate: 29.0 },
+            { week: 4, rate: 28.6 },
+            { week: 5, rate: 28.9 },
+            { week: 6, rate: 28.6 },
+            { week: 7, rate: 28.5 },
+            { week: 8, rate: 28.8 },
+        ];
+
+        const abTestData = {
+            checkout: [
+                { variant: 'Control', rate: 0.85, users: 4595 },
+                { variant: 'Treatment', rate: 1.29, users: 4589 },
+            ],
+            pricing: [
+                { variant: 'Control', rate: 1.45, users: 3231 },
+                { variant: 'Variant A', rate: 1.98, users: 3088 },
+                { variant: 'Variant B', rate: 2.03, users: 3002 },
+            ],
+        };
+
+        const channelData = [
+            { channel: 'Organic', revenue: 129663, convRate: 1.24, users: 2174, rpu: 59.64 },
+            { channel: 'Direct', revenue: 93032, convRate: 1.88, users: 1279, rpu: 72.74 },
+            { channel: 'Paid Search', revenue: 87176, convRate: 2.00, users: 1698, rpu: 51.34 },
+            { channel: 'Email', revenue: 63692, convRate: 1.32, users: 1286, rpu: 49.53 },
+            { channel: 'Paid Social', revenue: 50237, convRate: 1.50, users: 1270, rpu: 39.56 },
+            { channel: 'Referral', revenue: 31586, convRate: 0.81, users: 865, rpu: 36.52 },
+        ];
+
+        const channelPieData = [
+            { name: 'Organic', value: 25.5, color: '#2563eb' },
+            { name: 'Paid Search', value: 19.8, color: '#7c3aed' },
+            { name: 'Direct', value: 15.1, color: '#059669' },
+            { name: 'Email', value: 14.7, color: '#d97706' },
+            { name: 'Paid Social', value: 14.7, color: '#dc2626' },
+            { name: 'Referral', value: 10.3, color: '#0891b2' },
+        ];
+
+        const MetricCard = ({ title, value, subtitle, trend, icon }) => (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</p>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 group-hover:text-blue-600 transition-colors">{value}</p>
+                        {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+                    </div>
+                    <div className="text-3xl opacity-20 group-hover:opacity-40 transition-opacity">{icon}</div>
+                </div>
+                {trend && (
+                    <div className={`mt-4 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                        trend.direction === 'up' ? 'bg-green-100 text-green-700' : 
+                        trend.direction === 'down' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                        {trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→'} {trend.text}
+                    </div>
+                )}
+            </div>
+        );
+
+        const TabButton = ({ active, onClick, children }) => (
+            <button
+                onClick={onClick}
+                className={`px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                    active
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                        : 'text-gray-600 hover:bg-gray-100'
+                }`}
+            >
+                {children}
+            </button>
+        );
+
+        function ProductAnalyticsDashboard() {
+            const [activeTab, setActiveTab] = useState('overview');
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 p-4 md:p-8">
+                    {/* Header */}
+                    <div className="max-w-7xl mx-auto mb-8">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-900 bg-clip-text text-transparent">
+                                    Product Analytics Platform
+                                </h1>
+                                <p className="text-gray-500 mt-1">Oct 1 - Dec 30, 2025 • 90-Day Analysis</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <a href="https://github.com" target="_blank" className="text-gray-500 hover:text-gray-700">
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                                </a>
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+                                    Live Demo
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex flex-wrap gap-2 mt-6 p-1.5 bg-gray-100/80 rounded-2xl w-fit">
+                            {['overview', 'funnel', 'retention', 'experiments', 'channels'].map(tab => (
+                                <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>
+                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                </TabButton>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto">
+                        {/* Overview */}
+                        {activeTab === 'overview' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <MetricCard title="Total Users" value="10,000" icon="👥" trend={{ direction: 'up', text: '+12% QoQ' }} />
+                                    <MetricCard title="Revenue" value="$454K" subtitle="90-day total" icon="💰" trend={{ direction: 'up', text: '+8% QoQ' }} />
+                                    <MetricCard title="Avg DAU" value="384" subtitle="3.8% of total" icon="📊" />
+                                    <MetricCard title="Conversion" value="1.28%" icon="🎯" trend={{ direction: 'down', text: 'Below target' }} />
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-900 mb-6">Conversion Funnel</h3>
+                                        <ResponsiveContainer width="100%" height={280}>
+                                            <BarChart data={funnelData} layout="vertical" margin={{ left: 20 }}>
+                                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
+                                                <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`} />
+                                                <YAxis type="category" dataKey="stage" width={90} tick={{ fontSize: 12 }} />
+                                                <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: 12 }} />
+                                                <Bar dataKey="rate" radius={[0, 8, 8, 0]}>
+                                                    {funnelData.map((_, i) => <Cell key={i} fill={PALETTE[i]} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-900 mb-6">Retention Curve</h3>
+                                        <ResponsiveContainer width="100%" height={280}>
+                                            <AreaChart data={retentionData}>
+                                                <defs>
+                                                    <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.4}/>
+                                                        <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                <XAxis dataKey="week" tickFormatter={v => `W${v}`} />
+                                                <YAxis domain={[0, 40]} tickFormatter={v => `${v}%`} />
+                                                <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: 12 }} />
+                                                <Area type="monotone" dataKey="rate" stroke={COLORS.primary} fill="url(#grad)" strokeWidth={3} />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                {/* Recommendations */}
+                                <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-8 text-white">
+                                    <h3 className="text-xl font-bold mb-6">🎯 Executive Recommendations</h3>
+                                    <div className="grid md:grid-cols-3 gap-4">
+                                        {[
+                                            { priority: 'HIGH', title: 'Ship Checkout Redesign', desc: '+51% conversion lift, p=0.053' },
+                                            { priority: 'HIGH', title: 'Fix Mobile Experience', desc: '35% lower conversion vs desktop' },
+                                            { priority: 'MED', title: 'Scale Paid Search', desc: 'Highest ROI at 2% conversion' },
+                                        ].map((rec, i) => (
+                                            <div key={i} className="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
+                                                <span className={`text-xs font-bold px-2 py-1 rounded ${rec.priority === 'HIGH' ? 'bg-red-500' : 'bg-yellow-500 text-yellow-900'}`}>
+                                                    {rec.priority}
+                                                </span>
+                                                <p className="font-semibold mt-3">{rec.title}</p>
+                                                <p className="text-sm text-blue-100 mt-1">{rec.desc}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Funnel Analysis */}
+                        {activeTab === 'funnel' && (
+                            <div className="space-y-6">
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-900 mb-6">Funnel Volume</h3>
+                                        <ResponsiveContainer width="100%" height={350}>
+                                            <BarChart data={funnelData} layout="vertical">
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                <XAxis type="number" />
+                                                <YAxis type="category" dataKey="stage" width={100} />
+                                                <Tooltip contentStyle={{ borderRadius: 12 }} />
+                                                <Bar dataKey="users" radius={[0, 8, 8, 0]}>
+                                                    {funnelData.map((_, i) => <Cell key={i} fill={PALETTE[i]} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-900 mb-6">Drop-off Analysis</h3>
+                                        <ResponsiveContainer width="100%" height={350}>
+                                            <BarChart data={dropoffData}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                <XAxis dataKey="transition" tick={{ fontSize: 11 }} />
+                                                <YAxis tickFormatter={v => `${v}%`} />
+                                                <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: 12 }} />
+                                                <Bar dataKey="dropoff" radius={[8, 8, 0, 0]}>
+                                                    {dropoffData.map((d, i) => <Cell key={i} fill={d.dropoff > 60 ? COLORS.danger : COLORS.warning} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-900 mb-4">Funnel Metrics</h3>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="border-b-2 border-gray-100">
+                                                    <th className="text-left py-4 px-4 font-semibold text-gray-600">Stage</th>
+                                                    <th className="text-right py-4 px-4 font-semibold text-gray-600">Users</th>
+                                                    <th className="text-right py-4 px-4 font-semibold text-gray-600">Rate</th>
+                                                    <th className="text-right py-4 px-4 font-semibold text-gray-600">Drop-off</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {funnelData.map((row, i) => (
+                                                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                                        <td className="py-4 px-4 font-medium">{row.stage}</td>
+                                                        <td className="py-4 px-4 text-right font-mono">{row.users.toLocaleString()}</td>
+                                                        <td className="py-4 px-4 text-right">{row.rate}%</td>
+                                                        <td className="py-4 px-4 text-right">
+                                                            {i > 0 && <span className={`px-3 py-1 rounded-full text-sm font-medium ${dropoffData[i-1]?.dropoff > 60 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{dropoffData[i-1]?.dropoff}%</span>}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Retention */}
+                        {activeTab === 'retention' && (
+                            <div className="space-y-6">
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <MetricCard title="Week 0 Activation" value="16.7%" icon="🚀" trend={{ direction: 'down', text: 'Below 25% target' }} />
+                                    <MetricCard title="Week 1 Retention" value="30.4%" icon="📈" trend={{ direction: 'up', text: 'Above 20% benchmark' }} />
+                                    <MetricCard title="Week 4 Retention" value="28.6%" icon="🎯" trend={{ direction: 'neutral', text: 'Stable' }} />
+                                </div>
+
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-900 mb-6">Weekly Retention Curve</h3>
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <ComposedChart data={retentionData}>
+                                            <defs>
+                                                <linearGradient id="retGrad" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.3}/>
+                                                    <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                            <XAxis dataKey="week" tickFormatter={v => `Week ${v}`} />
+                                            <YAxis domain={[0, 40]} tickFormatter={v => `${v}%`} />
+                                            <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: 12 }} />
+                                            <Area type="monotone" dataKey="rate" fill="url(#retGrad)" stroke="none" />
+                                            <Line type="monotone" dataKey="rate" stroke={COLORS.primary} strokeWidth={3} dot={{ fill: COLORS.primary, r: 6 }} />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+                                    <h4 className="font-bold text-amber-800 mb-2">💡 Key Insight</h4>
+                                    <p className="text-amber-700">Week 0 activation (16.7%) is significantly below target. Users who return in Week 1 show strong long-term retention (~30%). Focus onboarding improvements to convert more Week 0 users into Week 1 actives.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* A/B Tests */}
+                        {activeTab === 'experiments' && (
+                            <div className="space-y-6">
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="font-bold text-gray-900">Checkout Redesign V2</h3>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">p = 0.053</span>
+                                        </div>
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <BarChart data={abTestData.checkout}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                <XAxis dataKey="variant" />
+                                                <YAxis tickFormatter={v => `${v}%`} domain={[0, 1.5]} />
+                                                <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: 12 }} />
+                                                <Bar dataKey="rate" radius={[8, 8, 0, 0]}>
+                                                    <Cell fill={COLORS.gray} />
+                                                    <Cell fill={COLORS.success} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                        <div className="mt-4 p-4 bg-green-50 rounded-xl">
+                                            <p className="text-green-800 font-semibold">+51.5% lift in purchase conversion</p>
+                                            <p className="text-green-600 text-sm mt-1">Approaching statistical significance. Recommend shipping.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="font-bold text-gray-900">Pricing Page Optimization</h3>
+                                            <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">Running</span>
+                                        </div>
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <BarChart data={abTestData.pricing}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                <XAxis dataKey="variant" />
+                                                <YAxis tickFormatter={v => `${v}%`} domain={[0, 2.5]} />
+                                                <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: 12 }} />
+                                                <Bar dataKey="rate" radius={[8, 8, 0, 0]}>
+                                                    <Cell fill={COLORS.gray} />
+                                                    <Cell fill={COLORS.secondary} />
+                                                    <Cell fill={COLORS.info} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                        <div className="mt-4 p-4 bg-purple-50 rounded-xl">
+                                            <p className="text-purple-800 font-semibold">Variant B leading at +39.7%</p>
+                                            <p className="text-purple-600 text-sm mt-1">Continue test for 2 more weeks to reach significance.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-900 mb-4">Test Summary</h3>
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b-2 border-gray-100">
+                                                <th className="text-left py-3 px-4 font-semibold text-gray-600">Test</th>
+                                                <th className="text-left py-3 px-4 font-semibold text-gray-600">Winner</th>
+                                                <th className="text-right py-3 px-4 font-semibold text-gray-600">Lift</th>
+                                                <th className="text-right py-3 px-4 font-semibold text-gray-600">P-Value</th>
+                                                <th className="text-left py-3 px-4 font-semibold text-gray-600">Recommendation</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr className="border-b border-gray-50">
+                                                <td className="py-4 px-4 font-medium">Checkout Redesign V2</td>
+                                                <td className="py-4 px-4"><span className="px-2 py-1 bg-green-100 text-green-700 rounded font-medium">Treatment</span></td>
+                                                <td className="py-4 px-4 text-right font-mono text-green-600">+51.5%</td>
+                                                <td className="py-4 px-4 text-right font-mono">0.053</td>
+                                                <td className="py-4 px-4">Ship to 100%</td>
+                                            </tr>
+                                            <tr className="border-b border-gray-50">
+                                                <td className="py-4 px-4 font-medium">Pricing Page V3</td>
+                                                <td className="py-4 px-4"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">Variant B</span></td>
+                                                <td className="py-4 px-4 text-right font-mono text-blue-600">+39.7%</td>
+                                                <td className="py-4 px-4 text-right font-mono">0.099</td>
+                                                <td className="py-4 px-4">Continue testing</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Channels */}
+                        {activeTab === 'channels' && (
+                            <div className="space-y-6">
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-900 mb-6">Revenue by Channel</h3>
+                                        <ResponsiveContainer width="100%" height={350}>
+                                            <BarChart data={channelData} layout="vertical">
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                <XAxis type="number" tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+                                                <YAxis type="category" dataKey="channel" width={90} />
+                                                <Tooltip formatter={v => `$${v.toLocaleString()}`} contentStyle={{ borderRadius: 12 }} />
+                                                <Bar dataKey="revenue" radius={[0, 8, 8, 0]}>
+                                                    {channelData.map((_, i) => <Cell key={i} fill={PALETTE[i]} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-900 mb-6">Conversion Rate by Channel</h3>
+                                        <ResponsiveContainer width="100%" height={350}>
+                                            <BarChart data={channelData}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                <XAxis dataKey="channel" tick={{ fontSize: 11 }} />
+                                                <YAxis tickFormatter={v => `${v}%`} />
+                                                <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: 12 }} />
+                                                <Bar dataKey="convRate" radius={[8, 8, 0, 0]}>
+                                                    {channelData.map((_, i) => <Cell key={i} fill={PALETTE[i]} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-900 mb-4">Channel Performance Matrix</h3>
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b-2 border-gray-100">
+                                                <th className="text-left py-3 px-4 font-semibold text-gray-600">Channel</th>
+                                                <th className="text-right py-3 px-4 font-semibold text-gray-600">Users</th>
+                                                <th className="text-right py-3 px-4 font-semibold text-gray-600">Revenue</th>
+                                                <th className="text-right py-3 px-4 font-semibold text-gray-600">Conv Rate</th>
+                                                <th className="text-right py-3 px-4 font-semibold text-gray-600">Rev/User</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {channelData.map((ch, i) => (
+                                                <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                                                    <td className="py-4 px-4">
+                                                        <span className="inline-flex items-center gap-2">
+                                                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: PALETTE[i] }}></span>
+                                                            <span className="font-medium">{ch.channel}</span>
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 px-4 text-right font-mono">{ch.users.toLocaleString()}</td>
+                                                    <td className="py-4 px-4 text-right font-mono">${ch.revenue.toLocaleString()}</td>
+                                                    <td className="py-4 px-4 text-right">
+                                                        <span className={`px-2 py-1 rounded text-sm font-medium ${ch.convRate >= 1.5 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                            {ch.convRate}%
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 px-4 text-right font-mono">${ch.rpu.toFixed(2)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
+                        <p>Product Analytics & Experimentation Platform • Built for Senior Data Analyst Portfolio</p>
+                        <p className="mt-1">Data: 10,000 users • 156,430 events • 90-day analysis period</p>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<ProductAnalyticsDashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>
